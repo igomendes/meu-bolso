@@ -1,0 +1,195 @@
+/* Meu Bolso — aparência.
+   Laranja vivo com fundo branco. Pensado primeiro para celular de 390 px. */
+
+:root {
+  --laranja: #FF6A00;
+  --laranja-escuro: #D95A00;
+  --laranja-claro: #FFF1E6;
+  --fundo: #FFFFFF;
+  --fundo-suave: #FAF7F4;
+  --texto: #1F1A17;
+  --texto-sutil: #6B625C;
+  --borda: #EDE6E0;
+  --erro: #C62828;
+  --ok: #2E7D32;
+  --raio: 16px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  background: var(--fundo-suave);
+  color: var(--texto);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.4;
+  -webkit-text-size-adjust: 100%;
+}
+
+[hidden] { display: none !important; }
+
+.tela {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 16px 16px calc(32px + env(safe-area-inset-bottom));
+}
+
+h1 { font-size: 1.5rem; margin: 0; }
+h2 { font-size: 1.1rem; margin: 0 0 12px; }
+
+.sutil { color: var(--texto-sutil); margin: 4px 0 12px; }
+
+.escondido {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap;
+}
+
+.carregando { text-align: center; color: var(--texto-sutil); margin-top: 40vh; padding: 0 16px; }
+
+/* Cartões */
+.cartao {
+  background: var(--fundo);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+/* Entrada */
+.entrada-topo { text-align: center; margin: 32px 0 24px; }
+.entrada-icone { width: 72px; height: 72px; border-radius: 18px; margin-bottom: 12px; }
+.entrada-topo h1 { color: var(--laranja); font-size: 2rem; }
+
+/* Campos */
+label, .rotulo-campo {
+  display: block;
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin: 12px 0 6px;
+}
+
+input {
+  width: 100%;
+  font: inherit;
+  font-size: 1rem;
+  padding: 12px 14px;
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  background: var(--fundo);
+  color: var(--texto);
+  min-height: 48px;
+}
+input:focus { outline: 2px solid var(--laranja); outline-offset: 1px; border-color: var(--laranja); }
+
+#valor { font-size: 1.5rem; font-weight: 700; }
+
+/* Botões */
+.botao {
+  display: block;
+  width: 100%;
+  min-height: 52px;
+  margin-top: 12px;
+  border-radius: 14px;
+  font: inherit;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  border: 2px solid var(--laranja);
+}
+.botao.principal { background: var(--laranja); color: #fff; }
+.botao.principal:active { background: var(--laranja-escuro); border-color: var(--laranja-escuro); }
+.botao.secundario { background: var(--fundo); color: var(--laranja-escuro); }
+.botao:disabled { opacity: 0.6; cursor: default; }
+
+.botao-texto {
+  background: none; border: none; font: inherit; font-weight: 600;
+  color: var(--laranja-escuro); padding: 10px 4px; cursor: pointer; min-height: 44px;
+}
+
+.linha-botoes { display: flex; gap: 8px; }
+.linha-botoes .botao { flex: 1; }
+
+/* Mensagens */
+.mensagem { margin: 12px 0 0; font-size: 0.95rem; }
+.mensagem.erro { color: var(--erro); }
+.mensagem.ok { color: var(--ok); }
+.mensagem.aviso-texto { color: var(--laranja-escuro); }
+
+.aviso {
+  background: var(--laranja-claro);
+  color: var(--laranja-escuro);
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin: 0 0 16px;
+  font-size: 0.95rem;
+}
+
+/* Topo do app */
+.topo {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px;
+}
+.topo h1 { color: var(--laranja); }
+
+/* Total do mês */
+.total { background: var(--laranja); border-color: var(--laranja); color: #fff; }
+.total .rotulo { margin: 0; font-weight: 600; opacity: 0.9; }
+.total-valor {
+  font-size: 2.6rem; font-weight: 800; margin: 4px 0 4px;
+  letter-spacing: -0.5px; font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.total .botao.principal { background: #fff; color: var(--laranja-escuro); border-color: #fff; }
+.total .botao.principal:active { background: var(--laranja-claro); }
+
+/* Categorias em botões */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  font: inherit; font-size: 0.95rem; font-weight: 600;
+  padding: 10px 14px; min-height: 44px;
+  border-radius: 999px;
+  border: 2px solid var(--borda);
+  background: var(--fundo); color: var(--texto);
+  cursor: pointer;
+}
+.chip[aria-checked="true"] { background: var(--laranja); border-color: var(--laranja); color: #fff; }
+
+/* Resumo */
+.resumo { background: var(--laranja-claro); border-color: var(--laranja-claro); }
+.resumo p { margin: 0; white-space: pre-line; }
+
+/* Barras */
+.barras { list-style: none; margin: 0; padding: 0; }
+.barras li { margin-bottom: 12px; }
+.barras li:last-child { margin-bottom: 0; }
+.barra-topo { display: flex; justify-content: space-between; font-size: 0.95rem; margin-bottom: 4px; }
+.barra-topo strong { font-variant-numeric: tabular-nums; }
+.barra-trilho { height: 10px; background: var(--laranja-claro); border-radius: 999px; overflow: hidden; }
+.barra-cheia { height: 100%; background: var(--laranja); border-radius: 999px; transition: width 0.3s; }
+
+/* Assistente */
+.assistente { border-style: dashed; border-color: var(--laranja); }
+
+/* Lista do mês */
+.lista { list-style: none; margin: 0; padding: 0; }
+.item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 0; border-bottom: 1px solid var(--borda);
+}
+.item:last-child { border-bottom: none; }
+.item.pendente { opacity: 0.7; }
+.item-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.item-titulo { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.item-detalhe { font-size: 0.85rem; color: var(--texto-sutil); }
+.item-valor { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.botao-apagar {
+  font: inherit; font-size: 0.85rem; font-weight: 600;
+  background: none; border: 1px solid var(--borda); border-radius: 10px;
+  color: var(--erro); padding: 8px 10px; min-height: 40px; cursor: pointer;
+}
+
+/* Computador */
+@media (min-width: 768px) {
+  .tela { padding-top: 32px; }
+}
