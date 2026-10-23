@@ -7,7 +7,6 @@
   var config = window.MEU_BOLSO;
   var CATEGORIAS = config.CATEGORIAS;
   var CHAVE_PENDENTES = "meu-bolso-pendentes";
-  var FRASE_SEXTA = "O assistente chega na sexta.";
 
   var $ = function (id) { return document.getElementById(id); };
 
@@ -429,14 +428,104 @@
     desenhar();
   });
 
-  // ---------- Assistente (chega na sexta) ----------
+  // ---------- Assistente ----------
+
+  var LADO_MAXIMO_FOTO = 1600;
+  var falandoComAssistente = false;
+
+  function travarAssistente(travar) {
+    falandoComAssistente = travar;
+    Array.prototype.forEach.call($("form-assistente").querySelectorAll("button, input"), function (el) {
+      el.disabled = travar;
+    });
+  }
+
+  // Reduz a foto no próprio aparelho (no máximo 1600 px, em JPEG) e devolve só o conteúdo em base64.
+  // A foto não é guardada em lugar nenhum: some da memória quando a função termina.
+  function reduzirFoto(arquivo) {
+    return new Promise(function (resolve, reject) {
+      var url = URL.createObjectURL(arquivo);
+      var img = new Image();
+      img.onload = function () {
+        var escala = Math.min(1, LADO_MAXIMO_FOTO / Math.max(img.naturalWidth, img.naturalHeight));
+        var tela = document.createElement("canvas");
+        tela.width = Math.round(img.naturalWidth * escala);
+        tela.height = Math.round(img.naturalHeight * escala);
+        tela.getContext("2d").drawImage(img, 0, 0, tela.width, tela.height);
+        URL.revokeObjectURL(url);
+        resolve(tela.toDataURL("image/jpeg", 0.85).split(",")[1]);
+      };
+      img.onerror = function () {
+        URL.revokeObjectURL(url);
+        reject(new Error("foto"));
+      };
+      img.src = url;
+    });
+  }
+
+  async function falarComAssistente(pedido) {
+    var msg = $("msg-assistente");
+    if (!navigator.onLine) { mostrarMensagem(msg, "Sem internet. O assistente precisa de conexão; confira e tente de novo.", "erro"); return; }
+    var sessao = (await cliente.auth.getSession()).data.session;
+    if (!sessao) { mostrarMensagem(msg, "Sua entrada expirou. Toque em Sair e entre de novo.", "erro"); return; }
+
+    travarAssistente(true);
+    mostrarMensagem(msg, pedido.imagem ? "Lendo o cupom…" : "Pensando…");
+    try {
+      var r = await fetch("/api/assistente", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + sessao.access_token },
+        body: JSON.stringify({
+          mensagem: pedido.mensagem || "",
+          imagem: pedido.imagem || null,
+          mime: pedido.imagem ? "image/jpeg" : null,
+          categorias: CATEGORIAS
+        })
+      });
+      var dados = {};
+      try { dados = await r.json(); } catch (e) { /* resposta sem JSON */ }
+      if (!r.ok || dados.erro) {
+        mostrarMensagem(msg, dados.erro || "O assistente não respondeu. Tente de novo em instantes.", "erro");
+        return;
+      }
+      mostrarMensagem(msg, dados.resposta, dados.lancado ? "ok" : "");
+      if (dados.lancado) {
+        $("frase").value = "";
+        await carregarGastos();
+      }
+    } catch (erro) {
+      mostrarMensagem(msg, "Não consegui falar com o assistente. Confira sua internet e tente de novo.", "erro");
+    } finally {
+      travarAssistente(false);
+    }
+  }
 
   $("form-assistente").addEventListener("submit", function (e) {
     e.preventDefault();
-    mostrarMensagem($("msg-assistente"), FRASE_SEXTA, "aviso-texto");
+    if (falandoComAssistente) return;
+    var frase = $("frase").value.trim();
+    if (!frase) { mostrarMensagem($("msg-assistente"), "Escreva o gasto, como: mercado 50 hoje.", "erro"); $("frase").focus(); return; }
+    falarComAssistente({ mensagem: frase });
   });
 
+  var escolherFoto = document.createElement("input");
+  escolherFoto.type = "file";
+  escolherFoto.accept = "image/*";
+  escolherFoto.hidden = true;
+  document.body.appendChild(escolherFoto);
+
   $("btn-foto").addEventListener("click", function () {
-    mostrarMensagem($("msg-assistente"), FRASE_SEXTA, "aviso-texto");
+    if (falandoComAssistente) return;
+    escolherFoto.click();
+  });
+
+  escolherFoto.addEventListener("change", async function () {
+    var arquivo = escolherFoto.files && escolherFoto.files[0];
+    escolherFoto.value = "";
+    if (!arquivo) return;
+    var imagem;
+    try { imagem = await reduzirFoto(arquivo); }
+    catch (e) { mostrarMensagem($("msg-assistente"), "Não consegui abrir essa foto. Tire outra e tente de novo.", "erro"); return; }
+    falarComAssistente({ mensagem: $("frase").value.trim(), imagem: imagem });
   });
 })();
