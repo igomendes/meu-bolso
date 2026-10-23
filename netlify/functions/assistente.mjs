@@ -183,15 +183,28 @@ async function chamarGemini(chave, sistema, partes, categorias) {
 
 // ---------- Ferramentas ----------
 
-async function registrar(token, args, categorias, origem, hoje) {
+function arrumarGasto(args, categorias, hoje) {
   const valor = Math.round(Number(args.valor) * 100) / 100;
-  if (!(valor > 0)) return { resposta: "Qual foi o valor do gasto?" };
+  if (!(valor > 0)) return null;
   const data = DATA_ISO.test(String(args.data || "")) ? args.data : hoje;
   const categoria = categorias.indexOf(args.categoria) !== -1 ? args.categoria : "Outros";
   // A tabela não aceita descrição vazia; sem ela, fica o nome da categoria.
   const descricao = String(args.descricao || "").trim().slice(0, 80) || categoria;
+  return { data, descricao, valor, categoria };
+}
 
-  const salvo = await gravarGasto(token, { data, descricao, valor, categoria, origem });
+// Foto do cupom: só devolve os dados para o app preencher o formulário. Quem salva é a pessoa.
+function preencher(args, categorias, hoje) {
+  const gasto = arrumarGasto(args, categorias, hoje);
+  if (!gasto) return { resposta: "Não consegui ler o valor total desse cupom. Tire outra foto, com o cupom inteiro e bem iluminado." };
+  return { preencher: gasto };
+}
+
+async function registrar(token, args, categorias, hoje) {
+  const gasto = arrumarGasto(args, categorias, hoje);
+  if (!gasto) return { resposta: "Qual foi o valor do gasto?" };
+
+  const salvo = await gravarGasto(token, Object.assign({ origem: "texto" }, gasto));
   return {
     resposta: "Lancei " + real(salvo.valor) + " em " + salvo.categoria + ": " + salvo.descricao + ", " + dataCurta(salvo.data) + ".",
     lancado: true
@@ -245,7 +258,8 @@ export default async (req) => {
     const saida = await chamarGemini(chave, promptDoSistema(hoje, categorias), partes, categorias);
 
     if (saida.chamada && saida.chamada.name === "registrar_gasto") {
-      return responder(await registrar(token, saida.chamada.args || {}, categorias, imagem ? "foto" : "texto", hoje));
+      if (imagem) return responder(preencher(saida.chamada.args || {}, categorias, hoje));
+      return responder(await registrar(token, saida.chamada.args || {}, categorias, hoje));
     }
     if (saida.chamada && saida.chamada.name === "consultar_gastos") {
       return responder(await consultar(token, saida.chamada.args || {}, categorias, hoje));

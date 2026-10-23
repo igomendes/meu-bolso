@@ -49,6 +49,7 @@
   var usuario = null;
   var gastos = [];
   var categoriaEscolhida = null;
+  var origemDoFormulario = "manual"; // vira "foto" quando o cupom preenche os campos
 
   // ---------- Datas e dinheiro ----------
 
@@ -397,7 +398,7 @@
       descricao: $("descricao").value.trim() || categoriaEscolhida,
       valor: valor,
       categoria: categoriaEscolhida,
-      origem: "manual",
+      origem: origemDoFormulario,
       criado_em: new Date().toISOString()
     };
 
@@ -425,6 +426,7 @@
     $("descricao").value = "";
     $("data").value = dataLocal(new Date());
     categoriaEscolhida = null;
+    origemDoFormulario = "manual";
     montarCategorias();
     desenhar();
   });
@@ -464,6 +466,18 @@
     });
   }
 
+  // O cupom só preenche os campos do "Lançar à mão"; o gasto entra no banco quando a pessoa toca em Salvar.
+  function preencherFormulario(g) {
+    $("valor").value = Number(g.valor).toFixed(2).replace(".", ",");
+    $("descricao").value = g.descricao || "";
+    $("data").value = g.data;
+    categoriaEscolhida = CATEGORIAS.indexOf(g.categoria) !== -1 ? g.categoria : "Outros";
+    origemDoFormulario = "foto";
+    montarCategorias();
+    mostrarMensagem($("msg-gasto"), "Confira os campos e toque em Salvar.", "aviso-texto");
+    $("secao-form").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   async function falarComAssistente(pedido) {
     var msg = $("msg-assistente");
     if (!navigator.onLine) { mostrarMensagem(msg, "Sem internet. O assistente precisa de conexão; confira e tente de novo.", "erro"); return; }
@@ -487,6 +501,11 @@
       try { dados = await r.json(); } catch (e) { /* resposta sem JSON */ }
       if (!r.ok || dados.erro) {
         mostrarMensagem(msg, dados.erro || "O assistente não respondeu. Tente de novo em instantes.", "erro");
+        return;
+      }
+      if (dados.preencher) {
+        preencherFormulario(dados.preencher);
+        mostrarMensagem(msg, "Li o cupom e preenchi o formulário acima. Confira os campos e toque em Salvar.", "ok");
         return;
       }
       mostrarMensagem(msg, dados.resposta, dados.lancado ? "ok" : "");
