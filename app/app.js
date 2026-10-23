@@ -509,24 +509,32 @@
     falarComAssistente({ mensagem: frase });
   });
 
-  var escolherFoto = document.createElement("input");
-  escolherFoto.type = "file";
-  escolherFoto.accept = "image/*";
-  escolherFoto.hidden = true;
-  document.body.appendChild(escolherFoto);
+  // Dois seletores escondidos: um abre a câmera traseira direto, o outro as fotos já salvas.
+  // No computador, o da câmera abre a janela de escolher arquivo.
+  function seletorDeFoto(botao, comCamera) {
+    var seletor = document.createElement("input");
+    seletor.type = "file";
+    seletor.accept = "image/*";
+    if (comCamera) seletor.setAttribute("capture", "environment");
+    seletor.hidden = true;
+    document.body.appendChild(seletor);
 
-  $("btn-foto").addEventListener("click", function () {
-    if (falandoComAssistente) return;
-    escolherFoto.click();
-  });
+    $(botao).addEventListener("click", function () {
+      if (falandoComAssistente) return;
+      seletor.click();
+    });
 
-  escolherFoto.addEventListener("change", async function () {
-    var arquivo = escolherFoto.files && escolherFoto.files[0];
-    escolherFoto.value = "";
-    if (!arquivo) return;
-    var imagem;
-    try { imagem = await reduzirFoto(arquivo); }
-    catch (e) { mostrarMensagem($("msg-assistente"), "Não consegui abrir essa foto. Tire outra e tente de novo.", "erro"); return; }
-    falarComAssistente({ mensagem: $("frase").value.trim(), imagem: imagem });
-  });
+    seletor.addEventListener("change", async function () {
+      var arquivo = seletor.files && seletor.files[0];
+      seletor.value = "";
+      if (!arquivo) return;
+      var imagem;
+      try { imagem = await reduzirFoto(arquivo); }
+      catch (e) { mostrarMensagem($("msg-assistente"), "Não consegui abrir essa foto. Tire outra e tente de novo.", "erro"); return; }
+      falarComAssistente({ mensagem: $("frase").value.trim(), imagem: imagem });
+    });
+  }
+
+  seletorDeFoto("btn-camera", true);
+  seletorDeFoto("btn-foto", false);
 })();
