@@ -297,6 +297,7 @@
     });
 
     $("total-mes").textContent = real(total);
+    $("media-dia").textContent = "Média de " + real(total / new Date().getDate()) + " por dia";
 
     // Barras por categoria
     var maior = Math.max.apply(null, CATEGORIAS.map(function (c) { return porCategoria[c]; }).concat([0]));
