@@ -216,6 +216,8 @@
     $("nome-mes").textContent = mes;
     $("data").value = dataLocal(new Date());
     montarCategorias();
+    montarEscolhasDash();
+    mostrarPagina("inicio");
     atualizarAvisoPendentes();
     carregarGastos();
     carregarResumo();
@@ -258,6 +260,7 @@
       gastos = r.data;
     }
     desenhar();
+    if (!$("pagina-dashboard").hidden) carregarDashboard();
   }
 
   async function carregarResumo() {
@@ -273,61 +276,65 @@
 
   function gastosDoMesNaTela() {
     var mes = limitesDoMes();
+    return juntarPendentes(gastos, mes.inicio, mes.fim);
+  }
+
+  // Soma à lista do banco os gastos guardados no aparelho que caem no período.
+  function juntarPendentes(doBanco, inicio, fim) {
     var pend = lerPendentes()
-      .filter(function (g) { return g.dono === usuario.id && g.data >= mes.inicio && g.data <= mes.fim; })
+      .filter(function (g) { return g.dono === usuario.id && g.data >= inicio && g.data <= fim; })
       .map(function (g) { return Object.assign({ pendente: true }, g); });
     var ids = {};
-    gastos.forEach(function (g) { ids[g.id] = true; });
-    return pend.filter(function (g) { return !ids[g.id]; }).concat(gastos).sort(function (a, b) {
+    doBanco.forEach(function (g) { ids[g.id] = true; });
+    return pend.filter(function (g) { return !ids[g.id]; }).concat(doBanco).sort(function (a, b) {
       if (a.data !== b.data) return a.data < b.data ? 1 : -1;
       return (a.criado_em || "") < (b.criado_em || "") ? 1 : -1;
     });
   }
 
-  function desenhar() {
-    var todos = gastosDoMesNaTela();
-    var total = 0;
+  function somarPorCategoria(lista) {
     var porCategoria = {};
     CATEGORIAS.forEach(function (c) { porCategoria[c] = 0; });
-    todos.forEach(function (g) {
-      var v = Number(g.valor) || 0;
-      total += v;
+    lista.forEach(function (g) {
       var c = porCategoria.hasOwnProperty(g.categoria) ? g.categoria : "Outros";
-      porCategoria[c] += v;
+      porCategoria[c] += Number(g.valor) || 0;
     });
+    return CATEGORIAS.map(function (c) { return { nome: c, valor: porCategoria[c] }; });
+  }
 
-    $("total-mes").textContent = real(total);
-    $("media-dia").textContent = "Média de " + real(total / new Date().getDate()) + " por dia";
+  function somarTotal(lista) {
+    return lista.reduce(function (t, g) { return t + (Number(g.valor) || 0); }, 0);
+  }
 
-    // Barras por categoria
-    var maior = Math.max.apply(null, CATEGORIAS.map(function (c) { return porCategoria[c]; }).concat([0]));
-    var barras = $("barras");
-    barras.textContent = "";
-    CATEGORIAS.forEach(function (c) {
+  // Desenha barras a partir de [{ nome, valor }], a maior ocupando a largura toda.
+  function desenharBarras(ul, itens) {
+    var maior = Math.max.apply(null, itens.map(function (i) { return i.valor; }).concat([0]));
+    ul.textContent = "";
+    itens.forEach(function (i) {
       var li = document.createElement("li");
       var topo = document.createElement("div");
       topo.className = "barra-topo";
       var nome = document.createElement("span");
-      nome.textContent = c;
+      nome.textContent = i.nome;
       var valor = document.createElement("strong");
-      valor.textContent = real(porCategoria[c]);
+      valor.textContent = real(i.valor);
       topo.appendChild(nome);
       topo.appendChild(valor);
       var trilho = document.createElement("div");
       trilho.className = "barra-trilho";
       var cheio = document.createElement("div");
       cheio.className = "barra-cheia";
-      cheio.style.width = maior > 0 ? (porCategoria[c] / maior * 100) + "%" : "0%";
+      cheio.style.width = maior > 0 ? (i.valor / maior * 100) + "%" : "0%";
       trilho.appendChild(cheio);
       li.appendChild(topo);
       li.appendChild(trilho);
-      barras.appendChild(li);
+      ul.appendChild(li);
     });
+  }
 
-    // Lista do mês
-    var lista = $("lista");
-    lista.textContent = "";
-    todos.forEach(function (g) {
+  function desenharLista(ul, lista) {
+    ul.textContent = "";
+    lista.forEach(function (g) {
       var li = document.createElement("li");
       li.className = "item" + (g.pendente ? " pendente" : "");
       var info = document.createElement("div");
@@ -352,8 +359,17 @@
       li.appendChild(info);
       li.appendChild(valor);
       li.appendChild(apagar);
-      lista.appendChild(li);
+      ul.appendChild(li);
     });
+  }
+
+  function desenhar() {
+    var todos = gastosDoMesNaTela();
+    var total = somarTotal(todos);
+    $("total-mes").textContent = real(total);
+    $("media-dia").textContent = "Média de " + real(total / new Date().getDate()) + " por dia";
+    desenharBarras($("barras"), somarPorCategoria(todos));
+    desenharLista($("lista"), todos);
     $("lista-vazia").hidden = todos.length > 0;
   }
 
@@ -372,6 +388,168 @@
     }
     gastos = gastos.filter(function (x) { return x.id !== g.id; });
     desenhar();
+    if (!$("pagina-dashboard").hidden) carregarDashboard();
+  }
+
+  // ---------- Menu ----------
+
+  function abrirMenu(abrir) {
+    $("menu").hidden = !abrir;
+    $("btn-menu").setAttribute("aria-expanded", String(abrir));
+  }
+
+  $("btn-menu").addEventListener("click", function (e) {
+    e.stopPropagation();
+    abrirMenu($("menu").hidden);
+  });
+
+  document.addEventListener("click", function (e) {
+    if (!$("menu").hidden && !$("menu").contains(e.target)) abrirMenu(false);
+  });
+
+  Array.prototype.forEach.call(document.querySelectorAll(".menu-item"), function (item) {
+    item.addEventListener("click", function () {
+      mostrarPagina(item.getAttribute("data-pagina"));
+      abrirMenu(false);
+    });
+  });
+
+  function mostrarPagina(qual) {
+    $("pagina-inicio").hidden = qual !== "inicio";
+    $("pagina-dashboard").hidden = qual !== "dashboard";
+    Array.prototype.forEach.call(document.querySelectorAll(".menu-item"), function (item) {
+      if (item.getAttribute("data-pagina") === qual) item.setAttribute("aria-current", "page");
+      else item.removeAttribute("aria-current");
+    });
+    window.scrollTo(0, 0);
+    if (qual === "dashboard") carregarDashboard();
+  }
+
+  // ---------- Dashboard ----------
+
+  var periodoDash = "mes";
+  var NOMES_MESES = [];
+  for (var m = 0; m < 12; m++) {
+    var nomeMes = new Date(2000, m, 1).toLocaleDateString("pt-BR", { month: "long" });
+    NOMES_MESES.push(nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1));
+  }
+
+  function montarEscolhasDash() {
+    var hoje = new Date();
+    $("escolha-dia").value = dataLocal(hoje);
+    var mes = $("escolha-mes");
+    mes.textContent = "";
+    NOMES_MESES.forEach(function (nome, i) {
+      var op = document.createElement("option");
+      op.value = String(i + 1).padStart(2, "0");
+      op.textContent = nome;
+      mes.appendChild(op);
+    });
+    mes.value = String(hoje.getMonth() + 1).padStart(2, "0");
+    var ano = $("escolha-ano");
+    ano.textContent = "";
+    for (var a = hoje.getFullYear(); a >= hoje.getFullYear() - 5; a--) {
+      var op = document.createElement("option");
+      op.value = String(a);
+      op.textContent = String(a);
+      ano.appendChild(op);
+    }
+    ano.value = String(hoje.getFullYear());
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll("#filtros .chip"), function (chip) {
+    chip.addEventListener("click", function () {
+      periodoDash = chip.getAttribute("data-periodo");
+      Array.prototype.forEach.call(document.querySelectorAll("#filtros .chip"), function (c) {
+        c.setAttribute("aria-checked", String(c === chip));
+      });
+      $("escolha-dia-caixa").hidden = periodoDash !== "dia";
+      $("escolha-mes-caixa").hidden = periodoDash !== "mes";
+      $("escolha-ano-caixa").hidden = periodoDash === "dia";
+      carregarDashboard();
+    });
+  });
+
+  ["escolha-dia", "escolha-mes", "escolha-ano"].forEach(function (id) {
+    $(id).addEventListener("change", carregarDashboard);
+  });
+
+  // Devolve o primeiro e o último dia do período escolhido, e quantos dias contam para a média.
+  function periodoEscolhido() {
+    var hoje = new Date();
+    if (periodoDash === "dia") {
+      var dia = $("escolha-dia").value || dataLocal(hoje);
+      return { inicio: dia, fim: dia, nome: "Gasto em " + dataCurta(dia) + "/" + dia.slice(0, 4), dias: 1 };
+    }
+    var ano = Number($("escolha-ano").value) || hoje.getFullYear();
+    if (periodoDash === "mes") {
+      var mes = Number($("escolha-mes").value) || hoje.getMonth() + 1;
+      var ultimo = new Date(ano, mes, 0);
+      var atual = ano === hoje.getFullYear() && mes === hoje.getMonth() + 1;
+      return {
+        inicio: dataLocal(new Date(ano, mes - 1, 1)),
+        fim: dataLocal(ultimo),
+        nome: "Gasto em " + NOMES_MESES[mes - 1].toLowerCase() + " de " + ano,
+        dias: atual ? hoje.getDate() : ultimo.getDate()
+      };
+    }
+    var inicioAno = new Date(ano, 0, 1);
+    var fimAno = new Date(ano, 11, 31);
+    var ateHoje = ano === hoje.getFullYear() ? hoje : fimAno;
+    return {
+      inicio: dataLocal(inicioAno),
+      fim: dataLocal(fimAno),
+      nome: "Gasto em " + ano,
+      dias: Math.round((new Date(ateHoje.getFullYear(), ateHoje.getMonth(), ateHoje.getDate()) - inicioAno) / 86400000) + 1
+    };
+  }
+
+  // No mês, uma barra por dia com gasto; no ano, uma barra por mês.
+  function evolucao(lista, p) {
+    var somas = {};
+    lista.forEach(function (g) {
+      var chave = periodoDash === "ano" ? g.data.slice(5, 7) : g.data;
+      somas[chave] = (somas[chave] || 0) + (Number(g.valor) || 0);
+    });
+    if (periodoDash === "ano") {
+      return NOMES_MESES.map(function (nome, i) {
+        return { nome: nome, valor: somas[String(i + 1).padStart(2, "0")] || 0 };
+      });
+    }
+    return Object.keys(somas).sort().map(function (d) { return { nome: dataCurta(d), valor: somas[d] }; });
+  }
+
+  var pedidoDash = 0;
+  async function carregarDashboard() {
+    if (!usuario) return;
+    var p = periodoEscolhido();
+    var meuPedido = ++pedidoDash;
+    $("dash-titulo").textContent = p.nome;
+    mostrarMensagem($("msg-dash"), "");
+    var r = await cliente
+      .from("gastos")
+      .select("id, data, descricao, valor, categoria, origem, criado_em")
+      .gte("data", p.inicio)
+      .lte("data", p.fim)
+      .order("data", { ascending: false })
+      .order("criado_em", { ascending: false });
+    if (meuPedido !== pedidoDash) return; // chegou depois de outro filtro; ignora
+    var doBanco = [];
+    if (r.error) {
+      mostrarMensagem($("msg-dash"), "Não consegui carregar o dashboard. " + fraseDeErro(r.error), "erro");
+    } else {
+      doBanco = r.data;
+    }
+    var lista = juntarPendentes(doBanco, p.inicio, p.fim);
+    var total = somarTotal(lista);
+    $("dash-total").textContent = real(total);
+    $("dash-media").textContent = periodoDash === "dia" ? (lista.length === 1 ? "1 gasto" : lista.length + " gastos") : "Média de " + real(total / p.dias) + " por dia";
+    $("cartao-evolucao").hidden = periodoDash === "dia";
+    $("titulo-evolucao").textContent = periodoDash === "ano" ? "Por mês" : "Por dia";
+    desenharBarras($("dash-evolucao"), evolucao(lista, p));
+    desenharBarras($("dash-barras"), somarPorCategoria(lista));
+    desenharLista($("dash-lista"), lista);
+    $("dash-vazia").hidden = lista.length > 0;
   }
 
   // ---------- Lançar à mão ----------

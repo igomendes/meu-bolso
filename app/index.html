@@ -34,10 +34,20 @@
   <main id="tela-app" class="tela" hidden>
     <header class="topo">
       <h1>Meu Bolso</h1>
-      <button type="button" id="btn-sair" class="botao-texto">Sair</button>
+      <div class="topo-acoes">
+        <button type="button" id="btn-menu" class="botao-texto" aria-expanded="false" aria-controls="menu">Menu</button>
+        <button type="button" id="btn-sair" class="botao-texto">Sair</button>
+      </div>
+      <nav id="menu" class="menu" aria-label="Menu" hidden>
+        <button type="button" class="menu-item" data-pagina="inicio" aria-current="page">Início</button>
+        <button type="button" class="menu-item" data-pagina="dashboard">Dashboard</button>
+      </nav>
     </header>
 
     <p id="aviso-pendentes" class="aviso" role="status" hidden></p>
+
+    <!-- Página Início -->
+    <div id="pagina-inicio">
 
     <section class="cartao total" aria-labelledby="titulo-total">
       <p id="titulo-total" class="rotulo">Gasto em <span id="nome-mes"></span></p>
@@ -92,6 +102,55 @@
       <ul id="lista" class="lista"></ul>
       <p id="lista-vazia" class="sutil" hidden>Nenhum gasto neste mês ainda. Toque em "Lançar gasto" para começar.</p>
     </section>
+    </div>
+
+    <!-- Página Dashboard -->
+    <div id="pagina-dashboard" hidden>
+      <section class="cartao" aria-labelledby="titulo-filtro">
+        <h2 id="titulo-filtro">Ver gastos por</h2>
+        <div id="filtros" class="chips" role="radiogroup" aria-labelledby="titulo-filtro">
+          <button type="button" class="chip" role="radio" data-periodo="dia" aria-checked="false">Dia</button>
+          <button type="button" class="chip" role="radio" data-periodo="mes" aria-checked="true">Mês</button>
+          <button type="button" class="chip" role="radio" data-periodo="ano" aria-checked="false">Ano</button>
+        </div>
+        <div id="escolha-dia-caixa" hidden>
+          <label for="escolha-dia">Qual dia</label>
+          <input id="escolha-dia" type="date">
+        </div>
+        <div id="escolha-mes-caixa">
+          <label for="escolha-mes">Qual mês</label>
+          <select id="escolha-mes"></select>
+        </div>
+        <div id="escolha-ano-caixa">
+          <label for="escolha-ano">Qual ano</label>
+          <select id="escolha-ano"></select>
+        </div>
+      </section>
+
+      <section class="cartao total" aria-labelledby="dash-titulo">
+        <p id="dash-titulo" class="rotulo">Gasto no período</p>
+        <p id="dash-total" class="total-valor">R$ 0,00</p>
+        <p id="dash-media" class="rotulo"></p>
+      </section>
+
+      <p id="msg-dash" class="mensagem erro" role="status" hidden></p>
+
+      <section id="cartao-evolucao" class="cartao" aria-labelledby="titulo-evolucao">
+        <h2 id="titulo-evolucao">Por dia</h2>
+        <ul id="dash-evolucao" class="barras"></ul>
+      </section>
+
+      <section class="cartao" aria-labelledby="titulo-dash-categorias">
+        <h2 id="titulo-dash-categorias">Por categoria</h2>
+        <ul id="dash-barras" class="barras"></ul>
+      </section>
+
+      <section class="cartao" aria-labelledby="titulo-dash-lista">
+        <h2 id="titulo-dash-lista">Gastos do período</h2>
+        <ul id="dash-lista" class="lista"></ul>
+        <p id="dash-vazia" class="sutil" hidden>Nenhum gasto neste período.</p>
+      </section>
+    </div>
   </main>
 
   <p id="carregando" class="carregando">Abrindo…</p>
