@@ -393,7 +393,8 @@
       id: novoId(),
       dono: usuario.id,
       data: data,
-      descricao: $("descricao").value.trim() || null,
+      // A tabela não aceita descrição vazia; sem ela, fica o nome da categoria.
+      descricao: $("descricao").value.trim() || categoriaEscolhida,
       valor: valor,
       categoria: categoriaEscolhida,
       origem: "manual",
