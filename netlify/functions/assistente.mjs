@@ -1,6 +1,7 @@
 // Meu Bolso — assistente.
 // Recebe uma frase ou a foto de um cupom, pede ao Gemini para escolher uma ferramenta
-// e grava ou consulta os gastos no Supabase com o login da própria pessoa.
+// e devolve o gasto para o app preencher o formulário (quem salva é a pessoa)
+// ou consulta os gastos no Supabase com o login da própria pessoa.
 // Aqui ficam só o endereço do projeto e a chave PÚBLICA do Supabase (as mesmas de app/configuracao.js).
 // A chave do Gemini vem do ambiente do servidor (CHAVE_GEMINI) e nunca entra em arquivo.
 
@@ -77,17 +78,6 @@ async function erroDoBanco(r, acao) {
   return new ErroAmigavel("Não consegui " + acao + ". Tente de novo em instantes.", 502);
 }
 
-async function gravarGasto(token, gasto) {
-  const r = await fetch(SUPABASE_URL + "/rest/v1/gastos", {
-    method: "POST",
-    headers: Object.assign(cabecalhosSupabase(token), { prefer: "return=representation" }),
-    body: JSON.stringify(gasto)
-  });
-  if (!r.ok) throw await erroDoBanco(r, "salvar o gasto");
-  const linhas = await r.json();
-  return linhas[0] || gasto;
-}
-
 async function somarGastos(token, desde, ate, categoria) {
   const filtros = new URLSearchParams();
   filtros.set("select", "valor");
@@ -111,7 +101,7 @@ function ferramentas(categorias) {
     function_declarations: [
       {
         name: "registrar_gasto",
-        description: "Lança um gasto novo da pessoa.",
+        description: "Prepara um gasto novo da pessoa; ela confere e salva no app.",
         parameters: {
           type: "object",
           properties: {
@@ -193,22 +183,16 @@ function arrumarGasto(args, categorias, hoje) {
   return { data, descricao, valor, categoria };
 }
 
-// Foto do cupom: só devolve os dados para o app preencher o formulário. Quem salva é a pessoa.
-function preencher(args, categorias, hoje) {
+// Frase, voz ou foto: só devolve os dados para o app preencher o formulário.
+// Nada é gravado aqui; quem salva é a pessoa, depois de conferir e confirmar.
+function preencher(args, categorias, hoje, comFoto) {
   const gasto = arrumarGasto(args, categorias, hoje);
-  if (!gasto) return { resposta: "Não consegui ler o valor total desse cupom. Tire outra foto, com o cupom inteiro e bem iluminado." };
+  if (!gasto) {
+    return { resposta: comFoto
+      ? "Não consegui ler o valor total desse cupom. Tire outra foto, com o cupom inteiro e bem iluminado."
+      : "Qual foi o valor do gasto?" };
+  }
   return { preencher: gasto };
-}
-
-async function registrar(token, args, categorias, hoje) {
-  const gasto = arrumarGasto(args, categorias, hoje);
-  if (!gasto) return { resposta: "Qual foi o valor do gasto?" };
-
-  const salvo = await gravarGasto(token, Object.assign({ origem: "texto" }, gasto));
-  return {
-    resposta: "Lancei " + real(salvo.valor) + " em " + salvo.categoria + ": " + salvo.descricao + ", " + dataCurta(salvo.data) + ".",
-    lancado: true
-  };
 }
 
 async function consultar(token, args, categorias, hoje) {
@@ -258,8 +242,7 @@ export default async (req) => {
     const saida = await chamarGemini(chave, promptDoSistema(hoje, categorias), partes, categorias);
 
     if (saida.chamada && saida.chamada.name === "registrar_gasto") {
-      if (imagem) return responder(preencher(saida.chamada.args || {}, categorias, hoje));
-      return responder(await registrar(token, saida.chamada.args || {}, categorias, hoje));
+      return responder(preencher(saida.chamada.args || {}, categorias, hoje, !!imagem));
     }
     if (saida.chamada && saida.chamada.name === "consultar_gastos") {
       return responder(await consultar(token, saida.chamada.args || {}, categorias, hoje));

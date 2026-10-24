@@ -604,13 +604,24 @@
     if (!(valor > 0)) { mostrarMensagem(msg, "Digite um valor maior que zero, como 32,50.", "erro"); $("valor").focus(); return; }
     if (!categoriaEscolhida) { mostrarMensagem(msg, "Toque em uma categoria.", "erro"); return; }
     if (!data) { mostrarMensagem(msg, "Escolha a data do gasto.", "erro"); return; }
+    var descricao = $("descricao").value.trim();
+    if (!descricao) { mostrarMensagem(msg, "Escreva onde ou com o quê foi o gasto.", "erro"); $("descricao").focus(); return; }
+
+    // Todo lançamento (à mão, frase, voz ou foto) passa por esta confirmação.
+    var p = data.split("-");
+    if (!confirm("Tem certeza que quer salvar?\n\n" +
+      "Valor: " + real(valor) + "\n" +
+      "Onde ou com o quê: " + descricao + "\n" +
+      "Data: " + p[2] + "/" + p[1] + "/" + p[0])) {
+      mostrarMensagem(msg, "Nada foi salvo. Confira os campos e toque em Salvar quando quiser.", "aviso-texto");
+      return;
+    }
 
     var gasto = {
       id: novoId(),
       dono: usuario.id,
       data: data,
-      // A tabela não aceita descrição vazia; sem ela, fica o nome da categoria.
-      descricao: $("descricao").value.trim() || categoriaEscolhida,
+      descricao: descricao,
       valor: valor,
       categoria: categoriaEscolhida,
       origem: origemDoFormulario,
@@ -681,13 +692,14 @@
     });
   }
 
-  // O cupom só preenche os campos do "Lançar à mão"; o gasto entra no banco quando a pessoa toca em Salvar.
-  function preencherFormulario(g) {
+  // O assistente só preenche os campos do "Lançar à mão"; o gasto entra no banco
+  // quando a pessoa toca em Salvar e confirma.
+  function preencherFormulario(g, origem) {
     $("valor").value = Number(g.valor).toFixed(2).replace(".", ",");
     $("descricao").value = g.descricao || "";
     $("data").value = g.data;
     categoriaEscolhida = CATEGORIAS.indexOf(g.categoria) !== -1 ? g.categoria : "Outros";
-    origemDoFormulario = "foto";
+    origemDoFormulario = origem;
     montarCategorias();
     mostrarMensagem($("msg-gasto"), "Confira os campos e toque em Salvar.", "aviso-texto");
     $("secao-form").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -719,15 +731,13 @@
         return;
       }
       if (dados.preencher) {
-        preencherFormulario(dados.preencher);
-        mostrarMensagem(msg, "Li o cupom e preenchi o formulário acima. Confira os campos e toque em Salvar.", "ok");
+        preencherFormulario(dados.preencher, pedido.imagem ? "foto" : "texto");
+        $("frase").value = "";
+        mostrarMensagem(msg, (pedido.imagem ? "Li o cupom e preenchi" : "Preenchi") +
+          " o formulário acima. Confira os campos e toque em Salvar.", "ok");
         return;
       }
-      mostrarMensagem(msg, dados.resposta, dados.lancado ? "ok" : "");
-      if (dados.lancado) {
-        $("frase").value = "";
-        await carregarGastos();
-      }
+      mostrarMensagem(msg, dados.resposta, "");
     } catch (erro) {
       mostrarMensagem(msg, "Não consegui falar com o assistente. Confira sua internet e tente de novo.", "erro");
     } finally {
