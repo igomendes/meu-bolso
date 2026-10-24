@@ -49,6 +49,8 @@
   var usuario = null;
   var gastos = [];
   var categoriaEscolhida = null;
+  var erroAoCarregar = false;
+  var FRASE_NAO_CARREGOU = "Não consegui carregar. Confira sua internet e puxe a página de novo.";
   var origemDoFormulario = "manual"; // vira "foto" quando o cupom preenche os campos
 
   // ---------- Datas e dinheiro ----------
@@ -278,9 +280,11 @@
       .lte("data", mes.fim)
       .order("data", { ascending: false })
       .order("criado_em", { ascending: false });
+    erroAoCarregar = !!r.error;
     if (r.error) {
-      mostrarMensagem($("msg-gasto"), "Não consegui carregar seus gastos. " + fraseDeErro(r.error), "erro");
+      mostrarMensagem($("msg-carregar"), "Não consegui carregar seus gastos. " + fraseDeErro(r.error), "erro");
     } else {
+      mostrarMensagem($("msg-carregar"), "");
       gastos = r.data;
     }
     desenhar();
@@ -399,6 +403,9 @@
     $("media-dia").textContent = "Média de " + real(total / new Date().getDate()) + " por dia";
     desenharBarras($("barras"), somarPorCategoria(todos));
     desenharLista($("lista"), todos);
+    $("lista-vazia").textContent = erroAoCarregar
+      ? FRASE_NAO_CARREGOU
+      : "Nenhum gasto neste mês ainda. Toque em \"Lançar gasto\" para começar.";
     $("lista-vazia").hidden = todos.length > 0;
   }
 
@@ -573,11 +580,12 @@
     var total = somarTotal(lista);
     animarValor($("dash-total"), total);
     $("dash-media").textContent = periodoDash === "dia" ? (lista.length === 1 ? "1 gasto" : lista.length + " gastos") : "Média de " + real(total / p.dias) + " por dia";
-    $("cartao-evolucao").hidden = periodoDash === "dia";
+    $("cartao-evolucao").hidden = periodoDash === "dia" || lista.length === 0;
     $("titulo-evolucao").textContent = periodoDash === "ano" ? "Por mês" : "Por dia";
     desenharBarras($("dash-evolucao"), evolucao(lista, p));
     desenharBarras($("dash-barras"), somarPorCategoria(lista));
     desenharLista($("dash-lista"), lista);
+    $("dash-vazia").textContent = r.error ? FRASE_NAO_CARREGOU : "Nenhum gasto neste período.";
     $("dash-vazia").hidden = lista.length > 0;
   }
 
