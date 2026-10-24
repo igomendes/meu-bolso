@@ -743,6 +743,64 @@
     falarComAssistente({ mensagem: frase });
   });
 
+  // ---------- Falar o gasto (microfone) ----------
+  // O navegador transforma a fala em texto; o áudio não é guardado pelo app.
+
+  var Reconhecimento = window.SpeechRecognition || window.webkitSpeechRecognition;
+  var ouvindo = null;
+
+  if (!Reconhecimento) {
+    $("dica-voz").hidden = false;
+  } else {
+    $("btn-voz").hidden = false;
+    $("btn-voz").addEventListener("click", function () {
+      if (ouvindo) { ouvindo.stop(); return; }
+      if (falandoComAssistente) return;
+      var msg = $("msg-assistente");
+      if (!navigator.onLine) { mostrarMensagem(msg, "Sem internet. O microfone precisa de conexão; confira e tente de novo.", "erro"); return; }
+
+      var rec = new Reconhecimento();
+      rec.lang = "pt-BR";
+      rec.interimResults = true;
+      rec.maxAlternatives = 1;
+      var ouvido = "";
+      var erro = null;
+
+      rec.onresult = function (e) {
+        var texto = "";
+        for (var i = 0; i < e.results.length; i++) texto += e.results[i][0].transcript;
+        ouvido = texto.trim();
+        $("frase").value = ouvido;
+      };
+      rec.onerror = function (e) { erro = e.error; };
+      rec.onend = function () {
+        ouvindo = null;
+        $("btn-voz").setAttribute("aria-pressed", "false");
+        if (erro === "not-allowed" || erro === "service-not-allowed") {
+          mostrarMensagem(msg, "Libere o microfone nas configurações do navegador e tente de novo.", "erro");
+        } else if (erro === "network") {
+          mostrarMensagem(msg, "Sem internet. O microfone precisa de conexão; confira e tente de novo.", "erro");
+        } else if (!ouvido) {
+          mostrarMensagem(msg, erro && erro !== "no-speech" && erro !== "aborted"
+            ? "Não consegui usar o microfone. Tente de novo ou digite o gasto."
+            : "Não ouvi nada. Toque no microfone e fale de novo.", "erro");
+        } else {
+          falarComAssistente({ mensagem: ouvido });
+        }
+      };
+
+      try {
+        rec.start();
+      } catch (e) {
+        mostrarMensagem(msg, "Não consegui usar o microfone. Tente de novo ou digite o gasto.", "erro");
+        return;
+      }
+      ouvindo = rec;
+      $("btn-voz").setAttribute("aria-pressed", "true");
+      mostrarMensagem(msg, "Pode falar…", "aviso-texto");
+    });
+  }
+
   // Dois seletores escondidos: um abre a câmera traseira direto, o outro as fotos já salvas.
   // No computador, o da câmera abre a janela de escolher arquivo.
   function seletorDeFoto(botao, comCamera) {
