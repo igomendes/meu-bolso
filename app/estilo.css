@@ -2,14 +2,18 @@
    Laranja vivo com fundo branco. Pensado primeiro para celular de 390 px. */
 
 :root {
+  /* Contraste: texto sobre --laranja é sempre --texto (6,0 : 1);
+     --laranja-escuro serve para texto e contorno sobre branco (5,1 : 1) e sobre --laranja-claro (4,6 : 1). */
   --laranja: #FF6A00;
-  --laranja-escuro: #D95A00;
+  --laranja-apertado: #F06400;
+  --laranja-escuro: #B84D00;
   --laranja-claro: #FFF1E6;
   --fundo: #FFFFFF;
   --fundo-suave: #FAF7F4;
   --texto: #1F1A17;
   --texto-sutil: #6B625C;
   --borda: #EDE6E0;
+  --borda-campo: #8C827B;
   --erro: #C62828;
   --ok: #2E7D32;
   --raio: 16px;
@@ -59,7 +63,7 @@ h2 { font-size: 1.1rem; margin: 0 0 12px; }
 /* Entrada */
 .entrada-topo { text-align: center; margin: 32px 0 24px; }
 .entrada-icone { width: 72px; height: 72px; border-radius: 18px; margin-bottom: 12px; }
-.entrada-topo h1 { color: var(--laranja); font-size: 2rem; }
+.entrada-topo h1 { color: var(--laranja-escuro); font-size: 2rem; }
 
 /* Campos */
 label, .rotulo-campo {
@@ -74,13 +78,13 @@ input, select {
   font: inherit;
   font-size: 1rem;
   padding: 12px 14px;
-  border: 1px solid var(--borda);
+  border: 1px solid var(--borda-campo);
   border-radius: 12px;
   background: var(--fundo);
   color: var(--texto);
   min-height: 48px;
 }
-input:focus, select:focus { outline: 2px solid var(--laranja); outline-offset: 1px; border-color: var(--laranja); }
+input:focus, select:focus { outline: 2px solid var(--laranja-escuro); outline-offset: 1px; border-color: var(--laranja-escuro); }
 
 #valor { font-size: 1.5rem; font-weight: 700; }
 
@@ -97,8 +101,8 @@ input:focus, select:focus { outline: 2px solid var(--laranja); outline-offset: 1
   cursor: pointer;
   border: 2px solid var(--laranja);
 }
-.botao.principal { background: var(--laranja); color: #fff; }
-.botao.principal:active { background: var(--laranja-escuro); border-color: var(--laranja-escuro); }
+.botao.principal { background: var(--laranja); color: var(--texto); }
+.botao.principal:active { background: var(--laranja-apertado); border-color: var(--laranja-apertado); }
 .botao.secundario { background: var(--fundo); color: var(--laranja-escuro); }
 .botao:disabled { opacity: 0.6; cursor: default; }
 
@@ -106,6 +110,13 @@ input:focus, select:focus { outline: 2px solid var(--laranja); outline-offset: 1
   background: none; border: none; font: inherit; font-weight: 600;
   color: var(--laranja-escuro); padding: 10px 4px; cursor: pointer; min-height: 44px;
 }
+
+/* Contorno de foco para quem usa teclado; dentro do cartão laranja, contorno escuro. */
+.botao:focus-visible, .botao-texto:focus-visible, .chip:focus-visible,
+.menu-item:focus-visible, .botao-apagar:focus-visible {
+  outline: 3px solid var(--laranja-escuro); outline-offset: 2px;
+}
+.total .botao:focus-visible { outline-color: var(--texto); }
 
 .linha-botoes { display: flex; gap: 8px; }
 .linha-botoes .botao { flex: 1; }
@@ -131,7 +142,7 @@ input:focus, select:focus { outline: 2px solid var(--laranja); outline-offset: 1
   display: flex; align-items: center; justify-content: space-between;
   margin-bottom: 12px;
 }
-.topo h1 { color: var(--laranja); }
+.topo h1 { color: var(--laranja-escuro); }
 .topo-acoes { display: flex; gap: 12px; }
 
 /* Menu */
@@ -150,8 +161,8 @@ input:focus, select:focus { outline: 2px solid var(--laranja); outline-offset: 1
 .menu-item[aria-current="page"] { background: var(--laranja-claro); color: var(--laranja-escuro); }
 
 /* Total do mês */
-.total { background: var(--laranja); border-color: var(--laranja); color: #fff; }
-.total .rotulo { margin: 0; font-weight: 600; opacity: 0.9; }
+.total { background: var(--laranja); border-color: var(--laranja); color: var(--texto); }
+.total .rotulo { margin: 0; font-weight: 600; }
 .total-valor {
   font-size: 2.6rem; font-weight: 800; margin: 4px 0 4px;
   letter-spacing: -0.5px; font-variant-numeric: tabular-nums;
@@ -170,7 +181,7 @@ input:focus, select:focus { outline: 2px solid var(--laranja); outline-offset: 1
   background: var(--fundo); color: var(--texto);
   cursor: pointer;
 }
-.chip[aria-checked="true"] { background: var(--laranja); border-color: var(--laranja); color: #fff; }
+.chip[aria-checked="true"] { background: var(--laranja); border-color: var(--laranja); color: var(--texto); }
 
 /* Resumo */
 .resumo { background: var(--laranja-claro); border-color: var(--laranja-claro); }
@@ -195,7 +206,7 @@ input:focus, select:focus { outline: 2px solid var(--laranja); outline-offset: 1
   padding: 12px 0; border-bottom: 1px solid var(--borda);
 }
 .item:last-child { border-bottom: none; }
-.item.pendente { opacity: 0.7; }
+.item.pendente { border-left: 3px dashed var(--laranja); padding-left: 10px; }
 .item-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .item-titulo { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .item-detalhe { font-size: 0.85rem; color: var(--texto-sutil); }
