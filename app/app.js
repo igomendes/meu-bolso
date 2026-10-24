@@ -69,6 +69,30 @@
   var formatoReal = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
   function real(v) { return formatoReal.format(Number(v) || 0); }
 
+  // ---------- Animações ----------
+
+  function menosMovimento() {
+    return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  }
+
+  // O total "conta" do valor anterior até o novo, em pouco mais de meio segundo.
+  function animarValor(el, valor) {
+    var de = typeof el._valor === "number" ? el._valor : 0;
+    el._valor = valor;
+    if (el._quadro) cancelAnimationFrame(el._quadro);
+    if (menosMovimento() || de === valor) { el.textContent = real(valor); return; }
+    var inicio = null;
+    var duracao = 650;
+    function passo(agora) {
+      if (inicio === null) inicio = agora;
+      var t = Math.min(1, (agora - inicio) / duracao);
+      var suave = 1 - Math.pow(1 - t, 3);
+      el.textContent = real(de + (valor - de) * suave);
+      if (t < 1) el._quadro = requestAnimationFrame(passo);
+    }
+    el._quadro = requestAnimationFrame(passo);
+  }
+
   function lerValor(texto) {
     var t = String(texto || "").replace(/[^\d,.]/g, "");
     if (t.indexOf(",") !== -1) t = t.replace(/\./g, "").replace(",", ".");
@@ -324,7 +348,12 @@
       trilho.className = "barra-trilho";
       var cheio = document.createElement("div");
       cheio.className = "barra-cheia";
-      cheio.style.width = maior > 0 ? (i.valor / maior * 100) + "%" : "0%";
+      // A barra nasce vazia e cresce até o tamanho certo (o CSS faz a transição).
+      cheio.style.width = "0%";
+      var alvo = maior > 0 ? (i.valor / maior * 100) + "%" : "0%";
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () { cheio.style.width = alvo; });
+      });
       trilho.appendChild(cheio);
       li.appendChild(topo);
       li.appendChild(trilho);
@@ -366,7 +395,7 @@
   function desenhar() {
     var todos = gastosDoMesNaTela();
     var total = somarTotal(todos);
-    $("total-mes").textContent = real(total);
+    animarValor($("total-mes"), total);
     $("media-dia").textContent = "Média de " + real(total / new Date().getDate()) + " por dia";
     desenharBarras($("barras"), somarPorCategoria(todos));
     desenharLista($("lista"), todos);
@@ -542,7 +571,7 @@
     }
     var lista = juntarPendentes(doBanco, p.inicio, p.fim);
     var total = somarTotal(lista);
-    $("dash-total").textContent = real(total);
+    animarValor($("dash-total"), total);
     $("dash-media").textContent = periodoDash === "dia" ? (lista.length === 1 ? "1 gasto" : lista.length + " gastos") : "Média de " + real(total / p.dias) + " por dia";
     $("cartao-evolucao").hidden = periodoDash === "dia";
     $("titulo-evolucao").textContent = periodoDash === "ano" ? "Por mês" : "Por dia";
